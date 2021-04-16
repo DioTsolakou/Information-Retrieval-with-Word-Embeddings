@@ -5,9 +5,9 @@ public class DocumentData {
     int id;
     String title, b, name;
     ArrayList<String> authors;
-    List<String[]> citation;
+    ArrayList<String[]> citation;
 
-    public DocumentData(int id, String title, String b, ArrayList<String> authors, String name, List<String[]> citation) {
+    public DocumentData(int id, String title, String b, ArrayList<String> authors, String name, ArrayList<String[]> citation) {
         this.id = id;
         this.title = title;
         this.b = b;
@@ -60,7 +60,7 @@ public class DocumentData {
         return citation;
     }
 
-    public void setCitation(List<String[]> citation) {
+    public void setCitation(ArrayList<String[]> citation) {
         this.citation = citation;
     }
 }

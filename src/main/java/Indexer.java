@@ -11,14 +11,14 @@ import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
 public class Indexer
 {
-    public Indexer()
+    public Indexer(String filename)
     {
-        String filename = "..//CACM//cacm.all";
         String indexLocation = "index";
         try
         {
@@ -59,22 +59,36 @@ public class Indexer
             StoredField title = new StoredField("title", docData.getTitle());
             doc.add(title);
 
+            StoredField w = new StoredField("w", docData.getW());
+            doc.add(w);
+
             StoredField b = new StoredField("b", docData.getB());
             doc.add(b);
 
             StoredField authors = new StoredField("authors", String.join("/", docData.getAuthors()));
             doc.add(authors);
 
+            StoredField keys = new StoredField("keys", String.join("/", docData.getKeys()));
+            doc.add(keys);
+
+            StoredField c = new StoredField("c", String.join("/", docData.getC()));
+            doc.add(c);
+
             StoredField name = new StoredField("name", docData.getName());
             doc.add(name);
 
-            StoredField citation = new StoredField("citation", String.join("/", (CharSequence) docData.getCitation()));
+            ArrayList<String> cit = new ArrayList<>();
+            for (String[] s: docData.getCitation())
+                cit.add(String.join(" ", s));
+
+            StoredField citation = new StoredField("citation", String.join("/", cit));
             doc.add(citation);
 
             String fullSearchableText =
                     String.join(" ",
-                            String.valueOf(docData.getId()), docData.getTitle(), docData.getB(), String.join("/",
-                                    docData.getAuthors()), docData.getName(), String.join("/", (CharSequence) docData.getCitation()));
+                            String.valueOf(docData.getId()), docData.getTitle(), docData.getW(), docData.getB(), String.join("/",
+                                    docData.getAuthors()), String.join("/", docData.getKeys()), String.join("/", docData.getC()),
+                                        docData.getName(), String.join("/", cit));
 
             TextField contents = new TextField("contents", fullSearchableText, Field.Store.NO);
             doc.add(contents);
@@ -87,6 +101,5 @@ public class Indexer
         } catch(Exception e){
             e.printStackTrace();
         }
-
     }
 }

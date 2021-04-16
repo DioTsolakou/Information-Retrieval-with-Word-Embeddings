@@ -1,17 +1,21 @@
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
 public class DocumentData {
     int id;
-    String title, b, name;
-    ArrayList<String> authors;
+    String title, w, b, name;
+    ArrayList<String> authors, keys, c;
     ArrayList<String[]> citation;
 
-    public DocumentData(int id, String title, String b, ArrayList<String> authors, String name, ArrayList<String[]> citation) {
+    public DocumentData(int id, String title, String w, String b, ArrayList<String> authors, ArrayList<String> keys, ArrayList<String> c, String name, ArrayList<String[]> citation) {
         this.id = id;
         this.title = title;
+        this.w = w;
         this.b = b;
         this.authors = authors;
+        this.keys = keys;
+        this.c = c;
         this.name = name;
         this.citation = citation;
     }
@@ -30,6 +34,14 @@ public class DocumentData {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getW() {
+        return w;
+    }
+
+    public void setW(String w) {
+        this.w = w;
     }
 
     public String getB() {
@@ -54,6 +66,22 @@ public class DocumentData {
 
     public void setAuthors(ArrayList<String> authors) {
         this.authors = authors;
+    }
+
+    public ArrayList<String> getKeys() {
+        return keys;
+    }
+
+    public void setKeys(ArrayList<String> keys) {
+        this.keys = keys;
+    }
+
+    public ArrayList<String> getC() {
+        return c;
+    }
+
+    public void setC(ArrayList<String> c) {
+        this.c = c;
     }
 
     public List<String[]> getCitation() {

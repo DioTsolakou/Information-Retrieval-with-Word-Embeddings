@@ -3,29 +3,34 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Preprocess {
-    private static ArrayList<DocumentData> data = new ArrayList<>();
-    private enum Status {TITLE, B, W, NAME, AUTHORS, KEYS, C, CITATION}
+    private static ArrayList<DocumentData> docData = new ArrayList<>();
+    private static ArrayList<QueryData> queryData = new ArrayList<>();
 
-    public static ArrayList<DocumentData> tokenizer(String filename)
+
+    private enum DocStatus {TITLE, B, W, NAME, AUTHORS, KEYS, C, CITATION}
+    private enum QueryStatus {W, N, A}
+
+    public static ArrayList<DocumentData> documentPreprocessor(String filename)
     {
-
-        try
-        {
+        try {
             String line;
             int id = 0;
-            String title, w, b, name;
-            title = w = b = name = "-";
+            String title;
+            StringBuilder w;
+            String b;
+            String name;
+            title = b = name = "-";
+            w = new StringBuilder();
             ArrayList<String> authors, keys, c;
             authors = keys = c = new ArrayList<>();
             ArrayList<String[]> citation = new ArrayList<>();
-            Status status = null;
+            DocStatus docStatus = null;
 
             int counter = 0;
             BufferedReader br = new BufferedReader(new FileReader(new File(filename)));
-            while((line = br.readLine()) != null)
-            {
+            while ((line = br.readLine()) != null) {
                 counter++;
-                String l2 = line.substring(0,2);
+                String l2 = line.substring(0, 2);
                 switch (l2) {
                     case ".I":
                         if (counter != 1) {
@@ -33,42 +38,146 @@ public class Preprocess {
                                 String.valueOf(id), title, b, String.join("/",
                                         authors), name));*/
                             //for (String[] s: citation) System.out.println(s[0] + s[1] + s[2]);
-                            data.add(new DocumentData(id, title, w, b, authors, keys, c, name, citation));
+                            docData.add(new DocumentData(id, title, w.toString(), b, authors, keys, c, name, citation));
                         }
-                        title = w = b = name = "-";
+                        title = b = name = "-";
+                        w = new StringBuilder();
                         authors = new ArrayList<>();
                         citation = new ArrayList<>();
                         keys = new ArrayList<>();
                         c = new ArrayList<>();
-                        id = Integer.parseInt(line.substring(line.indexOf(" ")+1));
+                        id = Integer.parseInt(line.substring(line.indexOf(" ") + 1));
                         break;
 
-                    case ".T": status = Status.TITLE; break;
-                    case ".W": status = Status.W; break;
-                    case ".B": status = Status.B; break;
-                    case ".A": status = Status.AUTHORS; break;
-                    case ".K": status = Status.KEYS; break;
-                    case ".C": status = Status.C; break;
-                    case ".N": status = Status.NAME; break;
-                    case ".X": status = Status.CITATION; break;
+                    case ".T":
+                        docStatus = DocStatus.TITLE;
+                        break;
+                    case ".W":
+                        docStatus = DocStatus.W;
+                        break;
+                    case ".B":
+                        docStatus = DocStatus.B;
+                        break;
+                    case ".A":
+                        docStatus = DocStatus.AUTHORS;
+                        break;
+                    case ".K":
+                        docStatus = DocStatus.KEYS;
+                        break;
+                    case ".C":
+                        docStatus = DocStatus.C;
+                        break;
+                    case ".N":
+                        docStatus = DocStatus.NAME;
+                        break;
+                    case ".X":
+                        docStatus = DocStatus.CITATION;
+                        break;
                     default:
-                        switch (status) {
-                            case TITLE: title = line; break;
-                            case W: w = line; break;
-                            case B: b = line; break;
-                            case AUTHORS: authors.add(line); break;
-                            case KEYS: keys.addAll(Arrays.asList(line.split(","))); break;
-                            case C: c.addAll(Arrays.asList(line.split("\\s"))); break;
-                            case NAME: name = line; break;
-                            case CITATION: citation.add(line.split("\\s")); break;
-                            default: break;
+                        switch (docStatus) {
+                            case TITLE:
+                                title = line;
+                                break;
+                            case W:
+                                w.append(line);
+                                break;
+                            case B:
+                                b = line;
+                                break;
+                            case AUTHORS:
+                                authors.add(line);
+                                break;
+                            case KEYS:
+                                keys.addAll(Arrays.asList(line.split(",")));
+                                break;
+                            case C:
+                                c.addAll(Arrays.asList(line.split("\\s")));
+                                break;
+                            case NAME:
+                                name = line;
+                                break;
+                            case CITATION:
+                                citation.add(line.split("\\s"));
+                                break;
+                            default:
+                                break;
                         }
                         break;
                 }
             }
-            data.add(new DocumentData(id, title, w, b, authors, keys, c, name, citation));
-            System.out.println(counter);
-            return data;
+            docData.add(new DocumentData(id, title, w.toString(), b, authors, keys, c, name, citation));
+            //System.out.println(counter);
+            return docData;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static ArrayList<QueryData> queryPreprocessor(String filename)
+    {
+        try {
+            String line;
+            int id = 0;
+            StringBuilder words;
+            String name;
+            name = "-";
+            words = new StringBuilder();
+            ArrayList<String> authors = new ArrayList<>();
+            QueryStatus queryStatus = null;
+
+            int counter = 0;
+            BufferedReader br = new BufferedReader(new FileReader(new File(filename)));
+            while ((line = br.readLine()) != null)
+            {
+                counter++;
+                if (line.length() <= 1) continue;
+                String l2 = line.substring(0, 2);
+
+                switch (l2)
+                {
+                    case ".I":
+                        if (counter != 1) {
+                            queryData.add(new QueryData(id, words.toString(), name, authors));
+                        }
+                        name = "-";
+                        words = new StringBuilder();
+                        authors = new ArrayList<>();
+                        id = Integer.parseInt(line.substring(line.indexOf(" ") + 1));
+                        break;
+                    case ".N":
+                        queryStatus = QueryStatus.N;
+                        break;
+                    case ".W":
+                        queryStatus = QueryStatus.W;
+                        break;
+                    case ".A":
+                        queryStatus = QueryStatus.A;
+                        break;
+                    default:
+                        switch (queryStatus)
+                        {
+                            case N:
+                                name = line;
+                                break;
+                            case W:
+                                words.append(line);
+                                break;
+                            case A:
+                                authors.add(line);
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
+                }
+            }
+            String w = words.toString().replace(".", "");
+            w = w.replace(",", "");
+            w = w.replace("\"", "");
+            queryData.add(new QueryData(id, w, name, authors));
+            //System.out.println(counter);
+            return queryData;
         }
         catch (IOException e)
         {

@@ -10,7 +10,7 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="Information-Retrieval-with-Word-Embeddings" target="1.5" />
+      <module name="Information-Retrieval-with-Word-Embeddings" target="8" />
     </bytecodeTargetLevel>
   </component>
 </project>

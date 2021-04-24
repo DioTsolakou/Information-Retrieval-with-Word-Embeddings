@@ -11,7 +11,6 @@ import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
@@ -32,13 +31,15 @@ public class Indexer
 
             iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
             IndexWriter indexWriter = new IndexWriter(dir, iwc);
-            ArrayList<DocumentData> data = Preprocess.tokenizer(filename);
+            ArrayList<DocumentData> data = Preprocess.documentPreprocessor(filename);
 
             //if (data == null) throw new NullPointerException();
             for (DocumentData d : data)
             {
                 indexDoc(indexWriter, d);
             }
+
+            indexWriter.close();
         }
         catch (IOException | NullPointerException e)
         {

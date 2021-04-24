@@ -8,6 +8,7 @@ public class main
         System.out.println("Gib filenam plox");
         String filename = in.nextLine();*/
 
-        Indexer indexer = new Indexer("..//CACM//cacm.all");
+        //Indexer indexer = new Indexer("..//CACM//cacm.all");
+        QueryParsing queryParsing = new QueryParsing("..//CACM//query.text", 50);
     }
 }

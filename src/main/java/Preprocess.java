@@ -15,11 +15,11 @@ public class Preprocess {
         try {
             String line;
             int id = 0;
-            String title;
-            StringBuilder w;
+            StringBuilder w, title;
             String b;
             String name;
-            title = b = name = "-";
+            b = name = "-";
+            title = new StringBuilder();
             w = new StringBuilder();
             ArrayList<String> authors, keys, c;
             authors = keys = c = new ArrayList<>();
@@ -38,9 +38,10 @@ public class Preprocess {
                                 String.valueOf(id), title, b, String.join("/",
                                         authors), name));*/
                             //for (String[] s: citation) System.out.println(s[0] + s[1] + s[2]);
-                            docData.add(new DocumentData(id, title, w.toString(), b, authors, keys, c, name, citation));
+                            docData.add(new DocumentData(id, title.toString(), w.toString(), b, authors, keys, c, name, citation));
                         }
-                        title = b = name = "-";
+                        b = name = "-";
+                        title = new StringBuilder();
                         w = new StringBuilder();
                         authors = new ArrayList<>();
                         citation = new ArrayList<>();
@@ -76,7 +77,7 @@ public class Preprocess {
                     default:
                         switch (docStatus) {
                             case TITLE:
-                                title = line;
+                                title.append(line);
                                 break;
                             case W:
                                 w.append(line);
@@ -105,7 +106,7 @@ public class Preprocess {
                         break;
                 }
             }
-            docData.add(new DocumentData(id, title, w.toString(), b, authors, keys, c, name, citation));
+            docData.add(new DocumentData(id, title.toString(), w.toString(), b, authors, keys, c, name, citation));
             //System.out.println(counter);
             return docData;
         } catch (IOException e) {

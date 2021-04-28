@@ -11,11 +11,11 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.document.Document;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+
+import java.io.*;
+import java.lang.reflect.Array;
 import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.*;
 
 public class QueryParsing
 {
@@ -47,39 +47,44 @@ public class QueryParsing
         {
             Analyzer analyzer = new EnglishAnalyzer();
             QueryParser queryParser = new QueryParser(field, analyzer);
-            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-            String line;
-
+            queryParser.setAllowLeadingWildcard(true);
+            File resultsFile = new File("our_results_" + topK +".txt");
+            if (resultsFile.exists()) {
+                resultsFile.delete();
+                resultsFile.createNewFile();
+            }
             for (QueryData d : data)
             {
-                Query query = queryParser.parse(d.getWords());
+                Query query = queryParser.parse(QueryParser.escape(d.getWords()));
                 TopDocs results = indexSearcher.search(query, topK);
                 ScoreDoc[] hits = results.scoreDocs;
                 long numTotalHits = results.totalHits;
-                System.out.println("Query id : " +d.getId()+ " has " +numTotalHits + " total matching documents");
-
+                //System.out.println("Query id : " +d.getId()+ " has " +numTotalHits+ " total matching documents");
+                //System.out.println("Query id : " +d.getId()+ " has " +hits.length+ " top matching documents");
                 for (ScoreDoc hit : hits)
                 {
                     Document hitDoc = indexSearcher.doc(hit.doc);
+                    System.out.println("\t["+hit.score+"] \tID: " + hitDoc.get("id") + " \tTITLE: " + hitDoc.get("title") + " \tW: " + hitDoc.get("w") + " \tB: " + hitDoc.get("b") +
+                                        " \tAUTHORS: " + hitDoc.get("authors") + " \tKEYS: " + hitDoc.get("keys") + " \tC: " + hitDoc.get("c") + " \tNAME: " + hitDoc.get("name"));
                     //System.out.println("\tScore "+hits[i].score +"\ttitle="+hitDoc.get("title")+"\tcaption:"+hitDoc.get("caption")+"\tmesh:"+hitDoc.get("mesh")); //use ours later
                 }
+                ArrayList<ScoreDoc> scoreDocs = new ArrayList<ScoreDoc>(Arrays.asList(hits));
+                Collections.sort(scoreDocs, new Comparator() {
+                    public int compare(Object o1, Object o2) {
+                        ScoreDoc sd1 = (ScoreDoc)o1;
+                        ScoreDoc sd2 = (ScoreDoc)o2;
+                        return -1 * Float.compare((sd1.score), (sd2.score));
+                    }
+                });
+                BufferedWriter bw = new BufferedWriter(new FileWriter(resultsFile, true));
+                String docId = String.valueOf(d.getId());
+                if (d.getId() < 10) docId = "0" + docId;
+                for (ScoreDoc sd: scoreDocs) {
+                    Document hitDoc = indexSearcher.doc(sd.doc);
+                    bw.append(docId + " 0 " + hitDoc.get("id") + " 0 " + sd.score + " standard_run_id\n");
+                }
+                bw.close();
             }
-
-
-            /*while ((line = br.readLine()) != null)
-            {
-                Query query = queryParser.parse(line);
-                TopDocs results = indexSearcher.search(query, topK);
-                ScoreDoc[] hits = results.scoreDocs;
-                long numTotalHits = results.totalHits;
-                System.out.println(numTotalHits + " total matching documents");
-
-                for (int i = 0; i < hits.length; i++)
-                {
-                    Document hitDoc = indexSearcher.doc(hits[i].doc);
-                    //System.out.println("\tScore "+hits[i].score +"\ttitle="+hitDoc.get("title")+"\tcaption:"+hitDoc.get("caption")+"\tmesh:"+hitDoc.get("mesh")); //use ours later
-                }
-            }*/
         }
         catch (IOException | ParseException e)
         {

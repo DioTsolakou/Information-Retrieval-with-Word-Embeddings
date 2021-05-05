@@ -6,7 +6,6 @@ public class Preprocess {
     private static ArrayList<DocumentData> docData = new ArrayList<>();
     private static ArrayList<QueryData> queryData = new ArrayList<>();
 
-
     private enum DocStatus {TITLE, B, W, NAME, AUTHORS, KEYS, C, CITATION}
     private enum QueryStatus {W, N, A}
 
@@ -34,10 +33,6 @@ public class Preprocess {
                 switch (l2) {
                     case ".I":
                         if (counter != 1) {
-                        /*System.out.println(String.join(" ",
-                                String.valueOf(id), title, b, String.join("/",
-                                        authors), name));*/
-                            //for (String[] s: citation) System.out.println(s[0] + s[1] + s[2]);
                             docData.add(new DocumentData(id, title.toString(), w.toString(), b, authors, keys, c, name, citation));
                         }
                         b = name = "-";
@@ -108,6 +103,7 @@ public class Preprocess {
             }
             docData.add(new DocumentData(id, title.toString(), w.toString(), b, authors, keys, c, name, citation));
             //System.out.println(counter);
+            br.close();
             return docData;
         } catch (IOException e) {
             e.printStackTrace();
@@ -120,9 +116,8 @@ public class Preprocess {
         try {
             String line;
             int id = 0;
-            StringBuilder words;
-            String name;
-            name = "-";
+            StringBuilder words, name;
+            name = new StringBuilder();
             words = new StringBuilder();
             ArrayList<String> authors = new ArrayList<>();
             QueryStatus queryStatus = null;
@@ -139,9 +134,9 @@ public class Preprocess {
                 {
                     case ".I":
                         if (counter != 1) {
-                            queryData.add(new QueryData(id, words.toString(), name, authors));
+                            queryData.add(new QueryData(id, words.toString(), name.toString(), authors));
                         }
-                        name = "-";
+                        name = new StringBuilder();
                         words = new StringBuilder();
                         authors = new ArrayList<>();
                         id = Integer.parseInt(line.substring(line.indexOf(" ") + 1));
@@ -159,7 +154,7 @@ public class Preprocess {
                         switch (queryStatus)
                         {
                             case N:
-                                name = line;
+                                name.append(line);
                                 break;
                             case W:
                                 words.append(line);
@@ -176,8 +171,9 @@ public class Preprocess {
             String w = words.toString().replace(".", "");
             w = w.replace(",", "");
             w = w.replace("\"", "");
-            queryData.add(new QueryData(id, w, name, authors));
+            queryData.add(new QueryData(id, w, name.toString(), authors));
             //System.out.println(counter);
+            br.close();
             return queryData;
         }
         catch (IOException e)

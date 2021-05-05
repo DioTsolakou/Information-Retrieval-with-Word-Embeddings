@@ -6,7 +6,9 @@ import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
+import org.apache.lucene.search.similarities.LMJelinekMercerSimilarity;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -16,7 +18,7 @@ import java.util.ArrayList;
 
 public class Indexer
 {
-    public Indexer(String filename)
+    public Indexer(String filename, String similarityName)
     {
         String indexLocation = "index";
         try
@@ -25,7 +27,19 @@ public class Indexer
 
             Directory dir = FSDirectory.open(Paths.get(indexLocation));
             Analyzer analyzer = new EnglishAnalyzer();
-            Similarity similarity = new ClassicSimilarity();
+            Similarity similarity;
+            if (similarityName.equalsIgnoreCase("lmj"))
+            {
+                similarity = new LMJelinekMercerSimilarity((float)0.3);
+            }
+            else if (similarityName.equalsIgnoreCase("bm25"))
+            {
+                similarity = new BM25Similarity();
+            }
+            else
+            {
+                similarity = new ClassicSimilarity();
+            }
             IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
             iwc.setSimilarity(similarity);
 

@@ -8,18 +8,18 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
+import org.apache.lucene.search.similarities.LMJelinekMercerSimilarity;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.document.Document;
-
 import java.io.*;
-import java.lang.reflect.Array;
 import java.nio.file.Paths;
 import java.util.*;
 
 public class QueryParsing
 {
-    public QueryParsing(String filename, int topK)
+    public QueryParsing(String filename, int topK, String similarityName)
     {
         String indexLocation = "index";
         String field = "contents";
@@ -27,7 +27,18 @@ public class QueryParsing
         {
             IndexReader indexReader = DirectoryReader.open(FSDirectory.open(Paths.get(indexLocation)));
             IndexSearcher indexSearcher = new IndexSearcher(indexReader);
-            indexSearcher.setSimilarity(new ClassicSimilarity());
+            if (similarityName.equalsIgnoreCase("lmj"))
+            {
+                indexSearcher.setSimilarity(new LMJelinekMercerSimilarity((float)0.3));
+            }
+            else if (similarityName.equalsIgnoreCase("bm25"))
+            {
+                indexSearcher.setSimilarity(new BM25Similarity());
+            }
+            else
+            {
+                indexSearcher.setSimilarity(new ClassicSimilarity());
+            }
 
             ArrayList<QueryData> data = Preprocess.queryPreprocessor(filename);
 
@@ -48,25 +59,24 @@ public class QueryParsing
             Analyzer analyzer = new EnglishAnalyzer();
             QueryParser queryParser = new QueryParser(field, analyzer);
             queryParser.setAllowLeadingWildcard(true);
-            File resultsFile = new File("our_results_" + topK +".txt");
+            String similarityName = String.valueOf(indexSearcher.getSimilarity(true));
+            similarityName = similarityName.replace(" ", "_");
+            File resultsFile = new File(similarityName + "_our_results_" + topK +".txt");
             if (resultsFile.exists()) {
                 resultsFile.delete();
                 resultsFile.createNewFile();
             }
-            for (QueryData d : data)
+            for (QueryData q : data)
             {
-                Query query = queryParser.parse(QueryParser.escape(d.getWords()));
+                Query query = queryParser.parse(QueryParser.escape(q.getWords()));
                 TopDocs results = indexSearcher.search(query, topK);
                 ScoreDoc[] hits = results.scoreDocs;
-                long numTotalHits = results.totalHits;
-                //System.out.println("Query id : " +d.getId()+ " has " +numTotalHits+ " total matching documents");
-                //System.out.println("Query id : " +d.getId()+ " has " +hits.length+ " top matching documents");
+
                 for (ScoreDoc hit : hits)
                 {
                     Document hitDoc = indexSearcher.doc(hit.doc);
                     System.out.println("\t["+hit.score+"] \tID: " + hitDoc.get("id") + " \tTITLE: " + hitDoc.get("title") + " \tW: " + hitDoc.get("w") + " \tB: " + hitDoc.get("b") +
                                         " \tAUTHORS: " + hitDoc.get("authors") + " \tKEYS: " + hitDoc.get("keys") + " \tC: " + hitDoc.get("c") + " \tNAME: " + hitDoc.get("name"));
-                    //System.out.println("\tScore "+hits[i].score +"\ttitle="+hitDoc.get("title")+"\tcaption:"+hitDoc.get("caption")+"\tmesh:"+hitDoc.get("mesh")); //use ours later
                 }
                 ArrayList<ScoreDoc> scoreDocs = new ArrayList<ScoreDoc>(Arrays.asList(hits));
                 Collections.sort(scoreDocs, new Comparator() {
@@ -77,11 +87,17 @@ public class QueryParsing
                     }
                 });
                 BufferedWriter bw = new BufferedWriter(new FileWriter(resultsFile, true));
-                String docId = String.valueOf(d.getId());
-                if (d.getId() < 10) docId = "0" + docId;
+                String queryId = String.valueOf(q.getId());
+                if (q.getId() < 10) queryId = "0" + queryId;
+
                 for (ScoreDoc sd: scoreDocs) {
                     Document hitDoc = indexSearcher.doc(sd.doc);
-                    bw.append(docId + " 0 " + hitDoc.get("id") + " 0 " + sd.score + " standard_run_id\n");
+                    String docId = hitDoc.get("id");
+                    while (docId.length() < 4)
+                    {
+                        docId = "0" + docId;
+                    }
+                    bw.append(queryId + "\t0" + "\t" + docId + "\t0" + "\t" + sd.score + "\tstandard_run_id\n");
                 }
                 bw.close();
             }

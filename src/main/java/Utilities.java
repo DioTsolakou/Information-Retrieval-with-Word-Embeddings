@@ -1,0 +1,65 @@
+import java.io.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+
+public class Utilities
+{
+    public static void checkDuplicates(String filename)
+    {
+        try
+        {
+            String line;
+            String[] array;
+            ArrayList<String> faults = new ArrayList<>();
+            String check;
+            BufferedReader br = new BufferedReader(new FileReader(new File(filename)));
+            BufferedWriter bw = new BufferedWriter(new FileWriter(new File("fixed_classic_results_30.txt")));
+            HashSet set = new HashSet();
+
+            while ((line = br.readLine()) != null)
+            {
+                array = line.split("\t");
+                check = array[0] + " " +array[2];
+                int length = set.size();
+                set.add(check);
+                if (set.size() == length) faults.add(check);
+                else bw.write(line + "\n");
+            }
+
+            br.close();
+            bw.close();
+            for (String s : faults) System.out.println(s);
+            System.out.println("Size: " +faults.size());
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public static void fixRels(String filename)
+    {
+        try
+        {
+            String line;
+            String[] array;
+
+            BufferedReader br = new BufferedReader(new FileReader(new File(filename)));
+            BufferedWriter bw = new BufferedWriter(new FileWriter(new File("qrels_fixed.txt")));
+
+            while ((line = br.readLine()) != null)
+            {
+                //line = line.replace(" ", "\t");
+                array = line.split("\\s");
+
+                bw.write(array[0] + "\t" + "0" + "\t" + array[1] + "\t" + "1" + "\n");
+            }
+            br.close();
+            bw.close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+}

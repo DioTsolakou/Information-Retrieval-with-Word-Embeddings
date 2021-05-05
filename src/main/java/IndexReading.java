@@ -1,9 +1,7 @@
 import org.apache.lucene.document.Document;
-import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.store.FSDirectory;
-
 import java.io.IOException;
 import java.nio.file.Paths;
 
@@ -12,7 +10,6 @@ public class IndexReading
     public IndexReading()
     {
         try{
-
             String indexLocation = ("index"); //define where the index is stored
 
             //Access the index using indexReader

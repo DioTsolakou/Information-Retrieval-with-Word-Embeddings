@@ -2,7 +2,7 @@ import java.util.Scanner;
 
 public class main
 {
-    public static void main(String args[])
+    public static void main(String[] args)
     {
         Scanner in = new Scanner(System.in);
         System.out.println("Give similarity please");
@@ -22,7 +22,9 @@ public class main
         System.out.println("------------------------------------");
         QueryParsing queryParsing50 = new QueryParsing("..//CACM//query.text", 50, similarity);
 
+        Utilities.checkDuplicates("..//Information-Retrieval-with-Word-Embeddings//ClassicSimilarity_our_results_20.txt");
         Utilities.checkDuplicates("..//Information-Retrieval-with-Word-Embeddings//ClassicSimilarity_our_results_30.txt");
+        Utilities.checkDuplicates("..//Information-Retrieval-with-Word-Embeddings//ClassicSimilarity_our_results_50.txt");
         Utilities.fixRels("..//trec_eval//qrels.txt");
     }
 }

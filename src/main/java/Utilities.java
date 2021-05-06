@@ -13,7 +13,7 @@ public class Utilities
             ArrayList<String> faults = new ArrayList<>();
             String check;
             BufferedReader br = new BufferedReader(new FileReader(new File(filename)));
-            BufferedWriter bw = new BufferedWriter(new FileWriter(new File("fixed_classic_results_30.txt")));
+            BufferedWriter bw = new BufferedWriter(new FileWriter(new File(filename.substring(0, filename.lastIndexOf('.')) + "_fixed.txt")));
             HashSet set = new HashSet();
 
             while ((line = br.readLine()) != null)
@@ -29,7 +29,7 @@ public class Utilities
             br.close();
             bw.close();
             for (String s : faults) System.out.println(s);
-            System.out.println("Size: " +faults.size());
+            System.out.println("Size: " + faults.size() + " of file : " +filename);
         }
         catch (IOException e)
         {

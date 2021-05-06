@@ -72,10 +72,10 @@ public class Preprocess {
                     default:
                         switch (docStatus) {
                             case TITLE:
-                                title.append(line);
+                                title.append(line).append(" ");
                                 break;
                             case W:
-                                w.append(line);
+                                w.append(line).append(" ");
                                 break;
                             case B:
                                 b = line;
@@ -154,10 +154,10 @@ public class Preprocess {
                         switch (queryStatus)
                         {
                             case N:
-                                name.append(line);
+                                name.append(line).append(" ");
                                 break;
                             case W:
-                                words.append(line);
+                                words.append(line).append(" ");
                                 break;
                             case A:
                                 authors.add(line);

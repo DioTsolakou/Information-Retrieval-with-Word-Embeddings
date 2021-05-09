@@ -12,7 +12,8 @@ public class Utilities
             String[] array;
             ArrayList<String> faults = new ArrayList<>();
             String check;
-            BufferedReader br = new BufferedReader(new FileReader(new File(filename)));
+            File oldFile = new File(filename);
+            BufferedReader br = new BufferedReader(new FileReader(oldFile));
             BufferedWriter bw = new BufferedWriter(new FileWriter(new File(filename.substring(0, filename.lastIndexOf('.')) + "_fixed.txt")));
             HashSet set = new HashSet();
 
@@ -28,6 +29,7 @@ public class Utilities
 
             br.close();
             bw.close();
+            if (oldFile.delete()) System.out.println("Old file deleted!");
             for (String s : faults) System.out.println(s);
             System.out.println("Size: " + faults.size() + " of file : " +filename);
         }

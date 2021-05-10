@@ -66,8 +66,11 @@ public class QueryParsing
                 resultsFile.delete();
                 resultsFile.createNewFile();
             }
+
+            ArrayList<String> queryIdDocIdCombinations = new ArrayList<>();
             for (QueryData q : data)
             {
+                //queryIdocIdCombinations.clear();
                 Query query = queryParser.parse(QueryParser.escape(q.getWords()));
                 TopDocs results = indexSearcher.search(query, topK);
                 ScoreDoc[] hits = results.scoreDocs;
@@ -79,10 +82,10 @@ public class QueryParsing
                                         " \tAUTHORS: " + hitDoc.get("authors") + " \tKEYS: " + hitDoc.get("keys") + " \tC: " + hitDoc.get("c") + " \tNAME: " + hitDoc.get("name"));
                 }
                 ArrayList<ScoreDoc> scoreDocs = new ArrayList<ScoreDoc>(Arrays.asList(hits));
-                Collections.sort(scoreDocs, new Comparator() {
+                scoreDocs.sort(new Comparator() {
                     public int compare(Object o1, Object o2) {
-                        ScoreDoc sd1 = (ScoreDoc)o1;
-                        ScoreDoc sd2 = (ScoreDoc)o2;
+                        ScoreDoc sd1 = (ScoreDoc) o1;
+                        ScoreDoc sd2 = (ScoreDoc) o2;
                         return -1 * Float.compare((sd1.score), (sd2.score));
                     }
                 });
@@ -92,12 +95,17 @@ public class QueryParsing
 
                 for (ScoreDoc sd: scoreDocs) {
                     Document hitDoc = indexSearcher.doc(sd.doc);
-                    String docId = hitDoc.get("id");
+                    StringBuilder docId = new StringBuilder(hitDoc.get("id"));
+
+                    String queryIdDocIdComb = queryId + "|" + docId;
+                    if (queryIdDocIdCombinations.contains(queryIdDocIdComb)) continue;
+                    queryIdDocIdCombinations.add(queryIdDocIdComb);
+
                     while (docId.length() < 4)
                     {
-                        docId = "0" + docId;
+                        docId.insert(0, "0");
                     }
-                    bw.append(queryId + "\t0" + "\t" + docId + "\t0" + "\t" + sd.score + "\tstandard_run_id\n");
+                    bw.append(queryId + "\t0" + "\t" + docId.toString() + "\t0" + "\t" + sd.score + "\tstandard_run_id\n");
                 }
                 bw.close();
             }

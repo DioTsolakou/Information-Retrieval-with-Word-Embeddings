@@ -31,7 +31,7 @@ public class Utilities
             bw.close();
             if (oldFile.delete()) System.out.println("Old file deleted!");
             for (String s : faults) System.out.println(s);
-            System.out.println("Size: " + faults.size() + " of file : " +filename);
+            System.out.println("Size: " + faults.size() + " of file : " + filename);
         }
         catch (IOException e)
         {

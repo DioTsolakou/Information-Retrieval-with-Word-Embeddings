@@ -13,16 +13,12 @@ public class IndexReading
     {
         try{
             String indexLocation = ("index"); //define where the index is stored
-
             //Access the index using indexReader
             IndexReader indexReader = DirectoryReader.open(FSDirectory.open(Paths.get(indexLocation))); //IndexReader is an abstract class, providing an interface for accessing an index.
-
             //Retrieve all docs in the index using the indexReader
             printIndexDocuments(indexReader);
-
             //Close indexReader
             indexReader.close();
-
         } catch(Exception e){
             e.printStackTrace();
         }

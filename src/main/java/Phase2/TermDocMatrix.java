@@ -16,7 +16,6 @@ import org.apache.lucene.store.RAMDirectory;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-
 import org.apache.lucene.classification.utils.DocToDoubleVectorUtils;
 
 public class TermDocMatrix

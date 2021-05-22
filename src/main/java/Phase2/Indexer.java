@@ -2,122 +2,139 @@ package Phase2;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.StoredField;
-import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.classification.utils.DocToDoubleVectorUtils;
+import org.apache.lucene.document.*;
+import org.apache.lucene.index.*;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
-import org.apache.lucene.search.similarities.LMJelinekMercerSimilarity;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.store.RAMDirectory;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 
 public class Indexer
 {
-    public Indexer(String filename, String similarityName)
+    public Indexer(String filename)
     {
-        String indexLocation = "index";
         try
         {
-            System.out.println("Indexing to directory '" + indexLocation + "'...");
+            EnglishAnalyzer analyzer = new EnglishAnalyzer();
+            Similarity similarity = new ClassicSimilarity();
 
-            Directory dir = FSDirectory.open(Paths.get(indexLocation));
-            Analyzer analyzer = new EnglishAnalyzer();
-            Similarity similarity;
-            if (similarityName.equalsIgnoreCase("lmj"))
-            {
-                similarity = new LMJelinekMercerSimilarity((float)0.3);
-            }
-            else if (similarityName.equalsIgnoreCase("bm25"))
-            {
-                similarity = new BM25Similarity();
-            }
-            else
-            {
-                similarity = new ClassicSimilarity();
-            }
+            Directory index = new RAMDirectory();
+
             IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
             iwc.setSimilarity(similarity);
 
-            iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
-            IndexWriter indexWriter = new IndexWriter(dir, iwc);
+            FieldType type = new FieldType();
+            type.setIndexOptions(IndexOptions.DOCS_AND_FREQS);
+            type.setTokenized(true);
+            type.setStored(true);
+            type.setStoreTermVectors(true);
+            IndexWriter indexWriter = new IndexWriter(index, iwc);
+
             ArrayList<DocumentData> data = Preprocess.documentPreprocessor(filename);
 
-            //if (data == null) throw new NullPointerException();
             for (DocumentData d : data)
             {
-                indexDoc(indexWriter, d);
+                indexDoc(indexWriter, d, type);
             }
 
             indexWriter.close();
+
+            IndexReader indexReader = DirectoryReader.open(index);
+            testSparseFreqDoubleArrayConversion(indexReader);
         }
-        catch (IOException | NullPointerException e)
+        catch (IOException e)
         {
             e.printStackTrace();
         }
     }
 
-    private void indexDoc(IndexWriter indexWriter, DocumentData docData)
+    private void indexDoc(IndexWriter indexWriter, DocumentData docData, FieldType type) throws IOException
     {
-        try {
-            // make a new, empty document
-            Document doc = new Document();
+        // make a new, empty document
+        Document doc = new Document();
 
-            // create the fields of the document and add them to the document
-            StoredField id = new StoredField("id", docData.getId());
-            doc.add(id);
+        // create the fields of the document and add them to the document
+        Field id = new Field("id", String.valueOf(docData.getId()), type);
+        doc.add(id);
 
-            StoredField title = new StoredField("title", docData.getTitle());
-            doc.add(title);
+        Field title = new Field("title", docData.getTitle(), type);
+        doc.add(title);
 
-            StoredField w = new StoredField("w", docData.getW());
-            doc.add(w);
+        Field w = new Field("w", docData.getW(), type);
+        doc.add(w);
 
-            StoredField b = new StoredField("b", docData.getB());
-            doc.add(b);
+        Field b = new Field("b", docData.getB(), type);
+        doc.add(b);
 
-            StoredField authors = new StoredField("authors", String.join("/", docData.getAuthors()));
-            doc.add(authors);
+        Field authors = new Field("authors", String.join("/", docData.getAuthors()), type);
+        doc.add(authors);
 
-            StoredField keys = new StoredField("keys", String.join("/", docData.getKeys()));
-            doc.add(keys);
+        Field keys = new Field("keys", String.join("/", docData.getKeys()), type);
+        doc.add(keys);
 
-            StoredField c = new StoredField("c", String.join("/", docData.getC()));
-            doc.add(c);
+        Field c = new Field("c", String.join("/", docData.getC()), type);
+        doc.add(c);
 
-            StoredField name = new StoredField("name", docData.getName());
-            doc.add(name);
+        Field name = new Field("name", docData.getName(), type);
+        doc.add(name);
 
-            ArrayList<String> cit = new ArrayList<>();
-            for (String[] s: docData.getCitation())
-                cit.add(String.join(" ", s));
+        ArrayList<String> cit = new ArrayList<>();
+        for (String[] s: docData.getCitation())
+            cit.add(String.join(" ", s));
 
-            StoredField citation = new StoredField("citation", String.join("/", cit));
-            doc.add(citation);
+        String fullSearchableText =
+                String.join(" ",
+                        String.valueOf(docData.getId()), docData.getTitle(), docData.getW(), docData.getB(), String.join("/",
+                                docData.getAuthors()), String.join("/", docData.getKeys()), String.join("/", docData.getC()),
+                        docData.getName(), String.join("/", cit));
 
-            String fullSearchableText =
-                    String.join(" ",
-                            String.valueOf(docData.getId()), docData.getTitle(), docData.getW(), docData.getB(), String.join("/",
-                                    docData.getAuthors()), String.join("/", docData.getKeys()), String.join("/", docData.getC()),
-                                        docData.getName(), String.join("/", cit));
+        Field contents = new Field("contents", fullSearchableText, type);
+        doc.add(contents);
 
-            TextField contents = new TextField("contents", fullSearchableText, Field.Store.NO);
-            doc.add(contents);
+        indexWriter.addDocument(doc);
+    }
 
-            if (indexWriter.getConfig().getOpenMode() == IndexWriterConfig.OpenMode.CREATE) {
-                // New index, so we just add the document (no old document can be there):
-                System.out.println("adding " + docData);
-                indexWriter.addDocument(doc);
+    private static void testSparseFreqDoubleArrayConversion(IndexReader reader) throws IOException
+    {
+        Terms fieldTerms = MultiFields.getTerms(reader, "contents");
+        TermsEnum it = fieldTerms.iterator();
+
+        if (fieldTerms != null && fieldTerms.size() != -1)
+        {
+            BufferedWriter bw = new BufferedWriter(new FileWriter(new File("docXterm.txt")));
+            IndexSearcher indexSearcher = new IndexSearcher(reader);
+            for (ScoreDoc scoreDoc : indexSearcher.search(new MatchAllDocsQuery(), Integer.MAX_VALUE).scoreDocs)
+            {
+                System.out.println("DocID: " + scoreDoc.doc);
+                Terms docTerms = reader.getTermVector(scoreDoc.doc, "contents");
+
+                Double[] vector = DocToDoubleVectorUtils.toSparseLocalFreqDoubleArray(docTerms, fieldTerms);
+                NumberFormat nf = new DecimalFormat("0.#");
+
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i <= vector.length - 1; i++)
+                {
+                    //System.out.println(nf.format(vector[i]) + " ");
+                    sb.append(nf.format(vector[i])).append(" ");
+                }
+                //System.out.println(sb.toString());
+                bw.write(sb.toString() + "\n");
             }
-        } catch(Exception e){
-            e.printStackTrace();
+            bw.close();
         }
     }
 }

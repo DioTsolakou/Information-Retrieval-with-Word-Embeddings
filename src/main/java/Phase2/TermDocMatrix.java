@@ -1,5 +1,7 @@
 package Phase2;
 
+import Phase1.DocumentData;
+import Phase1.Preprocess;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -16,6 +18,8 @@ import org.apache.lucene.store.RAMDirectory;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.ArrayList;
+
 import org.apache.lucene.classification.utils.DocToDoubleVectorUtils;
 
 public class TermDocMatrix
@@ -29,19 +33,27 @@ public class TermDocMatrix
 
             Directory index = new RAMDirectory();
 
-            IndexWriterConfig indexWriterConfig = new IndexWriterConfig(analyzer);
-            indexWriterConfig.setSimilarity(similarity);
+            IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
+            iwc.setSimilarity(similarity);
 
             FieldType type = new FieldType();
             type.setIndexOptions(IndexOptions.DOCS_AND_FREQS);
             type.setTokenized(true);
             type.setStored(true);
             type.setStoreTermVectors(true);
-            IndexWriter writer = new IndexWriter(index, indexWriterConfig);
-            writer.close();
+            IndexWriter indexWriter = new IndexWriter(index, iwc);
 
-            IndexReader reader = DirectoryReader.open(index);
-            testSparseFreqDoubleArrayConversion(reader);
+            //ArrayList<Phase1.DocumentData> data = Preprocess.documentPreprocessor(filename);
+
+            /*for (DocumentData d : data)
+            {
+                addDocWithTermVector(indexWriter, d, type);
+            }*/
+
+            indexWriter.close();
+
+            IndexReader indexReader = DirectoryReader.open(index);
+            testSparseFreqDoubleArrayConversion(indexReader);
         } catch (IOException e) {
             e.printStackTrace();
         }

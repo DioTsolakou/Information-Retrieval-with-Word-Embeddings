@@ -27,12 +27,14 @@ public class Indexer
 {
     public Indexer(String filename)
     {
+        String indexLocation = "index2";
         try
         {
             EnglishAnalyzer analyzer = new EnglishAnalyzer();
             Similarity similarity = new ClassicSimilarity();
 
-            Directory index = new RAMDirectory();
+            //Directory index = new RAMDirectory();
+            Directory index = FSDirectory.open(Paths.get(indexLocation));
 
             IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
             iwc.setSimilarity(similarity);
@@ -55,6 +57,7 @@ public class Indexer
 
             IndexReader indexReader = DirectoryReader.open(index);
             testSparseFreqDoubleArrayConversion(indexReader);
+            //Runtime.getRuntime().exec("python LSI.py");
         }
         catch (IOException e)
         {
@@ -121,6 +124,7 @@ public class Indexer
             {
                 System.out.println("DocID: " + scoreDoc.doc);
                 Terms docTerms = reader.getTermVector(scoreDoc.doc, "contents");
+                //System.out.println(docTerms.toString());
 
                 Double[] vector = DocToDoubleVectorUtils.toSparseLocalFreqDoubleArray(docTerms, fieldTerms);
                 NumberFormat nf = new DecimalFormat("0.#");

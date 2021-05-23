@@ -35,18 +35,7 @@ public class QueryParsing
         {
             IndexReader indexReader = DirectoryReader.open(FSDirectory.open(Paths.get(indexLocation)));
             IndexSearcher indexSearcher = new IndexSearcher(indexReader);
-            if (similarityName.equalsIgnoreCase("lmj"))
-            {
-                indexSearcher.setSimilarity(new LMJelinekMercerSimilarity((float)0.3));
-            }
-            else if (similarityName.equalsIgnoreCase("bm25"))
-            {
-                indexSearcher.setSimilarity(new BM25Similarity());
-            }
-            else
-            {
-                indexSearcher.setSimilarity(new ClassicSimilarity());
-            }
+            indexSearcher.setSimilarity(new ClassicSimilarity());
 
             ArrayList<QueryData> data = Preprocess.queryPreprocessor(filename);
 

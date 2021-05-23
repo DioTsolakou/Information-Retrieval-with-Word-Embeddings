@@ -22,7 +22,7 @@ public class Indexer
 {
     public Indexer(String filename, String similarityName)
     {
-        String indexLocation = "index";
+        String indexLocation = "index1";
         try
         {
             System.out.println("Indexing to directory '" + indexLocation + "'...");

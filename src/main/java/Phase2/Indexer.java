@@ -7,6 +7,7 @@ import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.search.similarities.Similarity;
@@ -25,38 +26,46 @@ import java.util.ArrayList;
 
 public class Indexer
 {
-    public Indexer(String filename)
+    public Indexer(String docFilename, String queryFilename)
     {
-        String indexLocation = "index2";
+        String indexDocLocation = "index2doc";
+        String indexQueryLocation = "index2query";
         try
         {
             EnglishAnalyzer analyzer = new EnglishAnalyzer();
             Similarity similarity = new ClassicSimilarity();
 
             //Directory index = new RAMDirectory();
-            Directory index = FSDirectory.open(Paths.get(indexLocation));
+            Directory indexDoc = FSDirectory.open(Paths.get(indexDocLocation));
+            Directory indexQuery = FSDirectory.open(Paths.get(indexQueryLocation));
 
-            IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
-            iwc.setSimilarity(similarity);
+            IndexWriterConfig iwcDoc = new IndexWriterConfig(analyzer);
+            iwcDoc.setSimilarity(similarity);
+            IndexWriterConfig iwcQuery = new IndexWriterConfig(analyzer);
+            iwcQuery.setSimilarity(similarity);
 
             FieldType type = new FieldType();
             type.setIndexOptions(IndexOptions.DOCS_AND_FREQS);
             type.setTokenized(true);
             type.setStored(true);
             type.setStoreTermVectors(true);
-            IndexWriter indexWriter = new IndexWriter(index, iwc);
 
-            ArrayList<DocumentData> data = Preprocess.documentPreprocessor(filename);
+            IndexWriter indexDocWriter = new IndexWriter(indexDoc, iwcDoc);
+            ArrayList<DocumentData> docData = Preprocess.documentPreprocessor(docFilename);
+            for (DocumentData d : docData) indexDoc(indexDocWriter, d, type);
+            indexDocWriter.close();
 
-            for (DocumentData d : data)
-            {
-                indexDoc(indexWriter, d, type);
-            }
+            IndexWriter indexQueryWriter = new IndexWriter(indexQuery, iwcQuery);
+            ArrayList<QueryData> queryData = Preprocess.queryPreprocessor(queryFilename);
+            for (QueryData q : queryData) indexQuery(indexQueryWriter, q, type);
+            indexQueryWriter.close();
 
-            indexWriter.close();
+            IndexReader indexDocReader = DirectoryReader.open(indexDoc);
+            testSparseFreqDoubleArrayConversion(indexDocReader, "docXterm.txt");
 
-            IndexReader indexReader = DirectoryReader.open(index);
-            testSparseFreqDoubleArrayConversion(indexReader);
+            IndexReader indexQueryReader = DirectoryReader.open(indexQuery);
+            testSparseFreqDoubleArrayConversion(indexQueryReader, "queryXterm.txt");
+
             //Runtime.getRuntime().exec("python LSI.py");
         }
         catch (IOException e)
@@ -111,18 +120,46 @@ public class Indexer
         indexWriter.addDocument(doc);
     }
 
-    private static void testSparseFreqDoubleArrayConversion(IndexReader reader) throws IOException
+    private void indexQuery(IndexWriter indexWriter, QueryData queryData, FieldType type) throws IOException
+    {
+        // make a new, empty document
+        Document doc = new Document();
+
+        // create the fields of the document and add them to the document
+        Field id = new Field("id", String.valueOf(queryData.getId()), type);
+        doc.add(id);
+
+        Field words = new Field("words", queryData.getWords(), type);
+        doc.add(words);
+
+        Field name = new Field("name", queryData.getName(), type);
+        doc.add(name);
+
+        Field authors = new Field("authors", String.join("/", queryData.getAuthors()), type);
+        doc.add(authors);
+
+        String fullSearchableText = String.join(" ",
+                        String.valueOf(queryData.getId()), queryData.getWords(), queryData.getName(),  String.join("/", queryData.getAuthors()));
+
+        Field contents = new Field("contents", fullSearchableText, type);
+        doc.add(contents);
+
+        indexWriter.addDocument(doc);
+    }
+
+    private static void testSparseFreqDoubleArrayConversion(IndexReader reader, String filename) throws IOException
     {
         Terms fieldTerms = MultiFields.getTerms(reader, "contents");
         TermsEnum it = fieldTerms.iterator();
 
         if (fieldTerms != null && fieldTerms.size() != -1)
         {
-            BufferedWriter bw = new BufferedWriter(new FileWriter(new File("docXterm.txt")));
+            BufferedWriter bw = new BufferedWriter(new FileWriter(new File(filename)));
             IndexSearcher indexSearcher = new IndexSearcher(reader);
             for (ScoreDoc scoreDoc : indexSearcher.search(new MatchAllDocsQuery(), Integer.MAX_VALUE).scoreDocs)
             {
-                System.out.println("DocID: " + scoreDoc.doc);
+                String idType = filename.contains("doc") ? "DocID: " : "QueryID: ";
+                System.out.println(idType + scoreDoc.doc);
                 Terms docTerms = reader.getTermVector(scoreDoc.doc, "contents");
                 //System.out.println(docTerms.toString());
 

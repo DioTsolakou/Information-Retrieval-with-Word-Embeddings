@@ -9,7 +9,7 @@ def read_files():
     termxdoc = np.array(docxterm.T, dtype=int)
     print("txd shape :", termxdoc.shape)
 
-    queriesxterm = np.loadtxt("../../../../queriesXterm.txt")
+    queriesxterm = np.loadtxt("../../../../queryXterm.txt")
     termxqueries = np.array(queriesxterm.T, dtype=int)
     print("txq shape :", termxqueries.shape)
 

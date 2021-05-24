@@ -23,6 +23,7 @@ import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 public class Indexer
 {
@@ -66,7 +67,7 @@ public class Indexer
             IndexReader indexQueryReader = DirectoryReader.open(indexQuery);
             testSparseFreqDoubleArrayConversion(indexQueryReader, "queryXterm.txt");
 
-            //Runtime.getRuntime().exec("python LSI.py");
+            Runtime.getRuntime().exec("python LSI.py " + new Scanner(System.in).nextInt());
         }
         catch (IOException e)
         {

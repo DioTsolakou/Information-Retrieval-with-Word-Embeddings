@@ -32,12 +32,11 @@ public class Indexer
         String indexQueryLocation = "index2query";
         try
         {
-            EnglishAnalyzer analyzer = new EnglishAnalyzer();
-            Similarity similarity = new ClassicSimilarity();
-
-            //Directory index = new RAMDirectory();
             Directory indexDoc = FSDirectory.open(Paths.get(indexDocLocation));
             Directory indexQuery = FSDirectory.open(Paths.get(indexQueryLocation));
+
+            EnglishAnalyzer analyzer = new EnglishAnalyzer();
+            Similarity similarity = new ClassicSimilarity();
 
             IndexWriterConfig iwcDoc = new IndexWriterConfig(analyzer);
             iwcDoc.setSimilarity(similarity);
@@ -50,11 +49,13 @@ public class Indexer
             type.setStored(true);
             type.setStoreTermVectors(true);
 
+            iwcDoc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
             IndexWriter indexDocWriter = new IndexWriter(indexDoc, iwcDoc);
             ArrayList<DocumentData> docData = Preprocess.documentPreprocessor(docFilename);
             for (DocumentData d : docData) indexDoc(indexDocWriter, d, type);
             indexDocWriter.close();
 
+            iwcQuery.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
             IndexWriter indexQueryWriter = new IndexWriter(indexQuery, iwcQuery);
             ArrayList<QueryData> queryData = Preprocess.queryPreprocessor(queryFilename);
             for (QueryData q : queryData) indexQuery(indexQueryWriter, q, type);
@@ -66,7 +67,7 @@ public class Indexer
             IndexReader indexQueryReader = DirectoryReader.open(indexQuery);
             testSparseFreqDoubleArrayConversion(indexQueryReader, "queryXterm.txt");
 
-            //Runtime.getRuntime().exec("python LSI.py");
+            Process process = Runtime.getRuntime().exec("python LSI.py 50");
         }
         catch (IOException e)
         {
@@ -117,7 +118,10 @@ public class Indexer
         Field contents = new Field("contents", fullSearchableText, type);
         doc.add(contents);
 
-        indexWriter.addDocument(doc);
+        if (indexWriter.getConfig().getOpenMode() == IndexWriterConfig.OpenMode.CREATE)
+        {
+            indexWriter.addDocument(doc);
+        }
     }
 
     private void indexQuery(IndexWriter indexWriter, QueryData queryData, FieldType type) throws IOException
@@ -144,13 +148,15 @@ public class Indexer
         Field contents = new Field("contents", fullSearchableText, type);
         doc.add(contents);
 
-        indexWriter.addDocument(doc);
+        if (indexWriter.getConfig().getOpenMode() == IndexWriterConfig.OpenMode.CREATE)
+        {
+            indexWriter.addDocument(doc);
+        }
     }
 
     private static void testSparseFreqDoubleArrayConversion(IndexReader reader, String filename) throws IOException
     {
         Terms fieldTerms = MultiFields.getTerms(reader, "contents");
-        TermsEnum it = fieldTerms.iterator();
 
         if (fieldTerms != null && fieldTerms.size() != -1)
         {

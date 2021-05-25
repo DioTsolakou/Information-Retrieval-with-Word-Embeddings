@@ -29,20 +29,16 @@ public class Indexer
 {
     public Indexer(String docFilename, String queryFilename)
     {
-        String indexDocLocation = "index2doc";
-        String indexQueryLocation = "index2query";
+        String indexLocation = "index";
         try
         {
-            Directory indexDoc = FSDirectory.open(Paths.get(indexDocLocation));
-            Directory indexQuery = FSDirectory.open(Paths.get(indexQueryLocation));
+            Directory index = FSDirectory.open(Paths.get(indexLocation));
 
             EnglishAnalyzer analyzer = new EnglishAnalyzer();
             Similarity similarity = new ClassicSimilarity();
 
-            IndexWriterConfig iwcDoc = new IndexWriterConfig(analyzer);
-            iwcDoc.setSimilarity(similarity);
-            IndexWriterConfig iwcQuery = new IndexWriterConfig(analyzer);
-            iwcQuery.setSimilarity(similarity);
+            IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
+            iwc.setSimilarity(similarity);
 
             FieldType type = new FieldType();
             type.setIndexOptions(IndexOptions.DOCS_AND_FREQS);
@@ -50,25 +46,25 @@ public class Indexer
             type.setStored(true);
             type.setStoreTermVectors(true);
 
-            iwcDoc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
-            IndexWriter indexDocWriter = new IndexWriter(indexDoc, iwcDoc);
+            iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
+            IndexWriter indexWriter = new IndexWriter(index, iwc);
             ArrayList<DocumentData> docData = Preprocess.documentPreprocessor(docFilename);
-            for (DocumentData d : docData) indexDoc(indexDocWriter, d, type);
-            indexDocWriter.close();
+            for (DocumentData d : docData) indexDoc(indexWriter, d, type);
+            int docSize = docData.size();
 
-            iwcQuery.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
-            IndexWriter indexQueryWriter = new IndexWriter(indexQuery, iwcQuery);
             ArrayList<QueryData> queryData = Preprocess.queryPreprocessor(queryFilename);
-            for (QueryData q : queryData) indexQuery(indexQueryWriter, q, type);
-            indexQueryWriter.close();
+            for (QueryData q : queryData) indexQuery(indexWriter, q, type);
+            int querySize = queryData.size();
+            indexWriter.close();
 
-            IndexReader indexDocReader = DirectoryReader.open(indexDoc);
-            testSparseFreqDoubleArrayConversion(indexDocReader, "docXterm.txt");
+            IndexReader indexReader = DirectoryReader.open(index);
+            System.out.println(indexReader.numDocs());
+            testSparseFreqDoubleArrayConversion(indexReader, docSize);
+            indexReader.close();
+            //indexReader = DirectoryReader.open(index);
+            //testSparseFreqDoubleArrayConversion(indexReader, "queryXterm.txt");
 
-            IndexReader indexQueryReader = DirectoryReader.open(indexQuery);
-            testSparseFreqDoubleArrayConversion(indexQueryReader, "queryXterm.txt");
-
-            Process process = Runtime.getRuntime().exec("python LSI.py 50");
+            //Process process = Runtime.getRuntime().exec("python LSI.py 50");
         }
         catch (IOException e)
         {
@@ -155,34 +151,38 @@ public class Indexer
         }
     }
 
-    private static void testSparseFreqDoubleArrayConversion(IndexReader reader, String filename) throws IOException
+    private static void testSparseFreqDoubleArrayConversion(IndexReader reader, int docSize) throws IOException
     {
+        //String contentName = filename.contains("doc") ? "contentsDoc" : "contentsQuery";
         Terms fieldTerms = MultiFields.getTerms(reader, "contents");
 
         if (fieldTerms != null && fieldTerms.size() != -1)
         {
-            BufferedWriter bw = new BufferedWriter(new FileWriter(new File(filename)));
+            BufferedWriter bwDoc = new BufferedWriter(new FileWriter(new File("docXterm.txt")));
+            BufferedWriter bwQ = new BufferedWriter(new FileWriter(new File("queryXterm.txt")));
+            int counter = 0;
             IndexSearcher indexSearcher = new IndexSearcher(reader);
             for (ScoreDoc scoreDoc : indexSearcher.search(new MatchAllDocsQuery(), Integer.MAX_VALUE).scoreDocs)
             {
-                String idType = filename.contains("doc") ? "DocID: " : "QueryID: ";
-                System.out.println(idType + scoreDoc.doc);
-                Terms docTerms = reader.getTermVector(scoreDoc.doc, "contents");
+                Terms terms = reader.getTermVector(scoreDoc.doc, "contents");
                 //System.out.println(docTerms.toString());
 
-                Double[] vector = DocToDoubleVectorUtils.toSparseLocalFreqDoubleArray(docTerms, fieldTerms);
+                Double[] vector = DocToDoubleVectorUtils.toSparseLocalFreqDoubleArray(terms, fieldTerms);
                 NumberFormat nf = new DecimalFormat("0.#");
 
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i <= vector.length - 1; i++)
                 {
-                    //System.out.println(nf.format(vector[i]) + " ");
                     sb.append(nf.format(vector[i])).append(" ");
                 }
-                //System.out.println(sb.toString());
-                bw.write(sb.toString() + "\n");
+                if (counter < docSize)
+                    bwDoc.write(sb.toString() + "\n");
+                else bwQ.write(sb.toString() + "\n");
+
+                counter++;
             }
-            bw.close();
+            bwDoc.close();
+            bwQ.close();
         }
     }
 }

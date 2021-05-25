@@ -1,5 +1,5 @@
 import numpy as np
-#import sys
+import sys
 #import pandas as pd
 #import textmining as tm
 
@@ -13,8 +13,6 @@ def read_files():
     termxqueries = np.array(queriesxterm.T, dtype=int)
     print("txq shape :", termxqueries.shape)
 
-    termxdoc = np.array(termxdoc)
-    termxqueries = np.array(termxqueries)
     return termxdoc, termxqueries
 
 
@@ -22,9 +20,9 @@ def svd_analysis(array):
     u, s_tmp, v = np.linalg.svd(array)
     s = np.zeros(array.shape)
     np.fill_diagonal(s, s_tmp)
-    #print("u shape :", u.shape)
-    #print("s shape :", s.shape)
-    #print("v shape :", v.shape)
+    print("u shape :", u.shape)
+    print("s shape :", s.shape)
+    print("v shape :", v.shape)
     return u, s, v
 
 
@@ -51,12 +49,12 @@ def main():
     u, s, v = svd_analysis(txd)
     txd_test = np.array(np.dot(np.dot(u, s), v))
     txd_test = np.around(txd_test)
-    #print("txd_test shape : ", txd_test.shape)
+    print("txd_test shape : ", txd_test.shape)
     #print("txd contents : ", txd)
     #print("txd_test contents : ", txd_test)
-    print((txd == txd_test).all())
+    #print((txd == txd_test).all())
 
-    rank = argv[1]
+    rank = sys.argv[1]
     ak, uk, sk, vk = create_ranked_matrix(u, s, v, rank)
     np.savetext('ak_matrix.txt', ak, delimiter=' ')
     similarity_matrix = calculate_cos_similarity(uk, sk, vk, txq)

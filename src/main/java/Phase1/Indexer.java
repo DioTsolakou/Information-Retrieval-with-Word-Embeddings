@@ -20,9 +20,9 @@ import java.util.ArrayList;
 
 public class Indexer
 {
-    public Indexer(String filename, String similarityName)
+    public Indexer(String filename, String similarityName, float LMJfloat)
     {
-        String indexLocation = "index1";
+        String indexLocation = "index";
         try
         {
             System.out.println("Indexing to directory '" + indexLocation + "'...");
@@ -32,7 +32,7 @@ public class Indexer
             Similarity similarity;
             if (similarityName.equalsIgnoreCase("lmj"))
             {
-                similarity = new LMJelinekMercerSimilarity((float)0.3);
+                similarity = new LMJelinekMercerSimilarity(LMJfloat);
             }
             else if (similarityName.equalsIgnoreCase("bm25"))
             {

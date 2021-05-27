@@ -21,7 +21,7 @@ import java.util.*;
 
 public class QueryParsing
 {
-    public QueryParsing(String filename, int topK, String similarityName)
+    public QueryParsing(String filename, int topK, String similarityName, float LMJfloat)
     {
         String indexLocation = "index";
         String field = "contents";
@@ -31,7 +31,7 @@ public class QueryParsing
             IndexSearcher indexSearcher = new IndexSearcher(indexReader);
             if (similarityName.equalsIgnoreCase("lmj"))
             {
-                indexSearcher.setSimilarity(new LMJelinekMercerSimilarity((float)0.3));
+                indexSearcher.setSimilarity(new LMJelinekMercerSimilarity(LMJfloat));
             }
             else if (similarityName.equalsIgnoreCase("bm25"))
             {
@@ -63,13 +63,20 @@ public class QueryParsing
             queryParser.setAllowLeadingWildcard(true);
             String similarityName = String.valueOf(indexSearcher.getSimilarity(true));
             similarityName = similarityName.replace(" ", "_");
+
+            System.out.println(similarityName);
+
+            int index = similarityName.indexOf(')') - 1;
+            while (similarityName.charAt(index) == '0') index--;
+            similarityName = similarityName.substring(0, index + 1) + ')';
+
             File resultsFile = new File(similarityName + "_our_results_" + topK +".txt");
             if (resultsFile.exists()) {
                 resultsFile.delete();
                 resultsFile.createNewFile();
             }
 
-            ArrayList<String> queryIdDocIdCombinations = new ArrayList<>();
+            //ArrayList<String> queryIdDocIdCombinations = new ArrayList<>();
             for (QueryData q : data)
             {
                 //queryIdocIdCombinations.clear();
@@ -99,9 +106,9 @@ public class QueryParsing
                     Document hitDoc = indexSearcher.doc(sd.doc);
                     StringBuilder docId = new StringBuilder(hitDoc.get("id"));
 
-                    String queryIdDocIdComb = queryId + "|" + docId;
+                    /*String queryIdDocIdComb = queryId + "|" + docId;
                     if (queryIdDocIdCombinations.contains(queryIdDocIdComb)) continue;
-                    queryIdDocIdCombinations.add(queryIdDocIdComb);
+                    queryIdDocIdCombinations.add(queryIdDocIdComb);*/
 
                     while (docId.length() < 4)
                     {

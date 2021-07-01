@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.Collections;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
-import org.deeplearning4j.models.sequencevectors.interfaces.SequenceIterator;
 import org.deeplearning4j.text.sentenceiterator.SentenceIterator;
 import org.deeplearning4j.text.sentenceiterator.SentencePreProcessor;
 

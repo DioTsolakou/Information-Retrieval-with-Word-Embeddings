@@ -1,7 +1,5 @@
 package Phase4;
 
-import Phase1.Preprocess;
-import Phase1.QueryData;
 import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.core.StopAnalyzer;
@@ -13,9 +11,10 @@ import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.FSDirectory;
+import org.deeplearning4j.models.embeddings.learning.impl.elements.CBOW;
+import org.deeplearning4j.models.embeddings.learning.impl.elements.SkipGram;
 import org.deeplearning4j.models.word2vec.Word2Vec;
 import org.deeplearning4j.text.tokenization.tokenizerfactory.DefaultTokenizerFactory;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -51,17 +50,21 @@ public class QueryParsing
     {
         try
         {
-            CharArraySet stopWords = new CharArraySet(Arrays.asList("a", "an", "the"), true);
+            FieldValuesSentenceIterator iterator = new FieldValuesSentenceIterator(reader, field);
 
-            /*QueryParser parser = new QueryParser("id", new KeywordAnalyzer());
-            QueryParser parser = new QueryParser("title", new WhitespaceAnalyzer());
-            QueryParser parser = new QueryParser("w", new StopAnalyzer(stopWords));
-            QueryParser parser = new QueryParser("b", new WhitespaceAnalyzer());
-            QueryParser parser = new QueryParser("authors", new WhitespaceAnalyzer());
-            QueryParser parser = new QueryParser("keys", new WhitespaceAnalyzer());
-            QueryParser parser = new QueryParser("c", new KeywordAnalyzer());
-            QueryParser parser = new QueryParser("name", new StopAnalyzer(stopWords));*/
-            QueryParser parser = new QueryParser("contents", new StopAnalyzer(stopWords));
+            Word2Vec vec = new Word2Vec.Builder()
+                    .layerSize(100)
+                    .windowSize(2)
+                    .tokenizerFactory(new DefaultTokenizerFactory())
+                    .iterate(iterator)
+                    .elementsLearningAlgorithm(new CBOW<>())
+                    //.elementsLearningAlgorithm(new SkipGram<>())
+                    .build();
+
+            vec.fit();
+
+            CharArraySet stopWords = new CharArraySet(Arrays.asList("a", "an", "the"), true);
+            QueryParser parser = new QueryParser(field, new StopAnalyzer(stopWords));
 
             File resultsFile = new File( "phase4_our_results_" + topK +".txt");
             if (resultsFile.exists()) {
@@ -72,47 +75,48 @@ public class QueryParsing
             for (QueryData q : data)
             {
                 Query query = parser.parse(QueryParser.escape(q.getWords()));
-                TopDocs results = searcher.search(query, topK);
+                /*TopDocs results = searcher.search(query, topK);
                 ScoreDoc[] hits = results.scoreDocs;
 
+                int i = 0;
                 for (ScoreDoc hit : hits)
                 {
                     Explanation explanation = searcher.explain(query, hit.doc);
-                    System.out.println(explanation);
+                    //System.out.println(explanation);
 
                     Document hitDoc = searcher.doc(hit.doc);
-                    System.out.println("---------------------------------------");
+                    System.out.println(i+ " ---------------------------------------");
                     System.out.println("\t["+hit.score+"] \tID: " + hitDoc.get("id") + " \tTITLE: " + hitDoc.get("title") + " \tW: " + hitDoc.get("w") + " \tB: " + hitDoc.get("b") +
                             " \tAUTHORS: " + hitDoc.get("authors") + " \tKEYS: " + hitDoc.get("keys") + " \tC: " + hitDoc.get("c") + " \tNAME: " + hitDoc.get("name"));
+                    i++;
+                }*/
+
+
+
+                //ArrayList<ScoreDoc> scoreDocs = new ArrayList<ScoreDoc>(Arrays.asList(hits));
+                Collection<String> search;
+                String words[] = query.toString().split("\\s");
+
+                for (String word : words)
+                {
+                    if (word.length() == 0) continue;
+                    word = word.replace("contents:", "");
+                    search = vec.wordsNearestSum(word, 2);
+                    System.out.println(word+ " : " +search);
                 }
 
-                FieldValuesSentenceIterator iterator = new FieldValuesSentenceIterator(reader,field);
 
-                Word2Vec vec = new Word2Vec.Builder()
-                        .layerSize(100)
-                        .windowSize(2)
-                        .tokenizerFactory(new DefaultTokenizerFactory())
-                        .iterate(iterator)
-                        .build();
-
-                vec.fit();
-
-                ArrayList<ScoreDoc> scoreDocs = new ArrayList<ScoreDoc>(Arrays.asList(hits));
-
-                Collection<String> search = vec.wordsNearestSum(q.getWords(), 2);
-                System.out.println(search);
-
-                BufferedWriter bw = new BufferedWriter(new FileWriter(resultsFile, true));
+                /*BufferedWriter bw = new BufferedWriter(new FileWriter(resultsFile, true));
                 String queryId = String.valueOf(q.getId());
                 if (q.getId() < 10) queryId = "0" + queryId;
 
                 for (ScoreDoc sd : scoreDocs) {
-                    Document hitDoc = indexSearcher.doc(sd.doc);
+                    Document hitDoc = searcher.doc(sd.doc);
                     StringBuilder docId = new StringBuilder(hitDoc.get("id"));
 
-                    /*String queryIdDocIdComb = queryId + "|" + docId;
+                    *//*String queryIdDocIdComb = queryId + "|" + docId;
                     if (queryIdDocIdCombinations.contains(queryIdDocIdComb)) continue;
-                    queryIdDocIdCombinations.add(queryIdDocIdComb);*/
+                    queryIdDocIdCombinations.add(queryIdDocIdComb);*//*
 
                     while (docId.length() < 4)
                     {
@@ -120,12 +124,12 @@ public class QueryParsing
                     }
                     bw.append(queryId + "\t0" + "\t" + docId.toString() + "\t0" + "\t" + sd.score + "\tstandard_run_id\n");
                 }
-                bw.close();
+                bw.close();*/
             }
 
 
         }
-        catch (ParseException | IOException e)
+        catch (IOException | ParseException e)
         {
             e.printStackTrace();
         }

@@ -10,12 +10,12 @@ public class main
         System.out.println("------------------------------------");
         QueryParsing queryParsing20 = new QueryParsing("..//CACM//query.text", 20);
         System.out.println("------------------------------------");
-        System.out.println("Starting 30:");
+        /*System.out.println("Starting 30:");
         System.out.println("------------------------------------");
         QueryParsing queryParsing30 = new QueryParsing("..//CACM//query.text", 30);
         System.out.println("------------------------------------");
         System.out.println("Starting 50:");
         System.out.println("------------------------------------");
-        QueryParsing queryParsing50 = new QueryParsing("..//CACM//query.text", 50);
+        QueryParsing queryParsing50 = new QueryParsing("..//CACM//query.text", 50);*/
     }
 }

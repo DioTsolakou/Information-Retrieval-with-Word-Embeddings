@@ -46,6 +46,7 @@ public class Indexer
 
             Analyzer analyzer = new PerFieldAnalyzerWrapper(defaultAnalyzer, perFieldAnalyzers);
             IndexWriterConfig config = new IndexWriterConfig(analyzer);
+            config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
             IndexWriter writer = new IndexWriter(index, config);
 
             ArrayList<DocumentData> data = Preprocess.documentPreprocessor(filename);

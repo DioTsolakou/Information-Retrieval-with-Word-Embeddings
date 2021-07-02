@@ -52,17 +52,17 @@
         <!-- Optional, but recommended: if you use CUDA, also use CuDNN. To use this, CuDNN must also be installed -->
         <!-- See: https://deeplearning4j.org/cudnn -->
 
-        <dependency>
+        <!--<dependency>
             <groupId>org.deeplearning4j</groupId>
             <artifactId>deeplearning4j-cuda-10.1</artifactId>
             <version>${dl4j.version}</version>
-        </dependency>
+        </dependency>-->
 
-        <dependency>
+        <!--<dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-test-framework</artifactId>
             <version>8.1.1</version>
-        </dependency>
+        </dependency>-->
 
         <dependency>
             <groupId>org.deeplearning4j</groupId>
@@ -83,7 +83,7 @@
             <version>4.3.6</version>
         </dependency>
 
-        <dependency>
+        <!--<dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-analyzers-common</artifactId>
             <version>5.3.1</version>
@@ -93,7 +93,7 @@
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-queryparser</artifactId>
             <version>5.3.1</version>
-        </dependency>
+        </dependency>-->
     </dependencies>
 
 

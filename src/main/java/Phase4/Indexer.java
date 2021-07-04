@@ -8,8 +8,10 @@ import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
@@ -49,11 +51,19 @@ public class Indexer
             config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
             IndexWriter writer = new IndexWriter(index, config);
 
+            FieldType ft = new FieldType(TextField.TYPE_STORED);
+            ft.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
+            ft.setTokenized(true);
+            ft.setStored(true);
+            ft.setStoreTermVectors(true);
+            ft.setStoreTermVectorOffsets(true);
+            ft.setStoreTermVectorPositions(true);
+
             ArrayList<DocumentData> data = Preprocess.documentPreprocessor(filename);
 
             for (DocumentData d : data)
             {
-                indexDoc(writer, d);
+                indexDoc(writer, d, ft);
             }
 
             writer.close();
@@ -64,34 +74,34 @@ public class Indexer
         }
     }
 
-    private void indexDoc(IndexWriter indexWriter, DocumentData docData) throws IOException
+    private void indexDoc(IndexWriter indexWriter, DocumentData docData, FieldType fieldType) throws IOException
     {
         // make a new, empty document
         Document doc = new Document();
 
         // create the fields of the document and add them to the document
-        TextField id = new TextField("id", String.valueOf(docData.getId()), Field.Store.YES);
+        Field id = new Field("id", String.valueOf(docData.getId()), fieldType);
         doc.add(id);
 
-        TextField title = new TextField("title", docData.getTitle(), Field.Store.YES);
+        Field title = new Field("title", docData.getTitle(), fieldType);
         doc.add(title);
 
-        TextField w = new TextField("w", docData.getW(), Field.Store.YES);
+        Field w = new Field("w", docData.getW(), fieldType);
         doc.add(w);
 
-        TextField b = new TextField("b", docData.getB(), Field.Store.YES);
+        Field b = new Field("b", docData.getB(), fieldType);
         doc.add(b);
 
-        TextField authors = new TextField("authors", String.join("/", docData.getAuthors()), Field.Store.YES);
+        Field authors = new Field("authors", String.join("/", docData.getAuthors()), fieldType);
         doc.add(authors);
 
-        TextField keys = new TextField("keys", String.join("/", docData.getKeys()), Field.Store.YES);
+        Field keys = new Field("keys", String.join("/", docData.getKeys()), fieldType);
         doc.add(keys);
 
-        TextField c = new TextField("c", String.join("/", docData.getC()), Field.Store.YES);
+        Field c = new Field("c", String.join("/", docData.getC()), fieldType);
         doc.add(c);
 
-        TextField name = new TextField("name", docData.getName(), Field.Store.YES);
+        Field name = new Field("name", docData.getName(), fieldType);
         doc.add(name);
 
         ArrayList<String> cit = new ArrayList<>();
@@ -104,7 +114,7 @@ public class Indexer
                                 docData.getAuthors()), String.join("/", docData.getKeys()), String.join("/", docData.getC()),
                         docData.getName(), String.join("/", cit));
 
-        TextField contents = new TextField("contents", fullSearchableText, Field.Store.YES);
+        Field contents = new Field("contents", fullSearchableText, fieldType);
         doc.add(contents);
 
         if (indexWriter.getConfig().getOpenMode() == IndexWriterConfig.OpenMode.CREATE)

@@ -88,6 +88,7 @@ public class VectorizeUtils {
     private static void smoothDocVector(Terms docTerms, double n, WordEmbeddingsSimilarity.Smoothing smoothing,
                                         INDArray documentVector, TermsEnum docTermsEnum, INDArray wordVector) throws IOException {
         double smooth;
+        wordVector = wordVector.ravel();
         switch (smoothing) {
             case MEAN:
                 smooth = docTerms.size();

@@ -103,15 +103,11 @@ public class WordEmbeddingsSimilarity extends Similarity {
                 i++;
             }
 
-            long size = word2Vec.vocabSize();
-
             if (fieldTerms == null) {
                 fieldTerms = MultiFields.getTerms(reader, fieldName);
             }
 
             for (String queryTerm : queryTerms) {
-                if (!word2Vec.hasWord(queryTerm)) break;
-
                 TermsEnum iterator = fieldTerms.iterator();
                 BytesRef term;
                 while ((term = iterator.next()) != null) {
@@ -123,8 +119,8 @@ public class WordEmbeddingsSimilarity extends Similarity {
                         String string = term.utf8ToString();
                         if (string.equals(queryTerm)) {
                             INDArray vector = word2Vec.getLookupTable().vector(queryTerm);
-                            vector = vector.ravel();
                             if (vector != null) {
+                                vector = vector.ravel();
                                 double tf = iterator.totalTermFreq();
                                 double docFreq = iterator.docFreq();
                                 double smooth;

@@ -1,12 +1,27 @@
 package Phase5;
 
+import Phase4.FieldValuesSentenceIterator;
+import Phase4.WordEmbeddingsSimilarity;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.similarities.*;
+import org.apache.lucene.store.FSDirectory;
+import org.deeplearning4j.models.embeddings.learning.impl.elements.CBOW;
+import org.deeplearning4j.models.embeddings.learning.impl.elements.SkipGram;
+import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
+import org.deeplearning4j.models.word2vec.Word2Vec;
+import org.deeplearning4j.text.tokenization.tokenizerfactory.DefaultTokenizerFactory;
+
+import javax.swing.text.MutableAttributeSet;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Scanner;
 
-public class main
-{
-    public static void main(String[] args)
-    {
+public class main {
+    public static void main(String[] args) {
         Scanner in = new Scanner(System.in);
         System.out.println("Give similarity please");
         String similarity;
@@ -14,56 +29,56 @@ public class main
         while (similarity.split(" ").length != 2 ||
                 similarity.split(" ")[0].equals(similarity.split(" ")[1]));
 
-        float LMJfloat;
-        if (similarity.contains("lmj"))
-        {
-            System.out.println("Give LMJ float");
-            LMJfloat = in.nextFloat();
-        }
-        else LMJfloat = 0.f;
+        if (similarity.contains("lmj")) System.out.println("Give LMJ float");
+        float LMJfloat = similarity.contains("lmj") ? in.nextFloat() : 0.f;
 
         String w2v_algo = null;
-        boolean pretrained_bool = false;
+        boolean pretrained = false;
         if (similarity.contains("w2v")) {
             System.out.println("Give Word2Vec learning algorithm please\nYou can choose between Skipgram and CBOW");
             w2v_algo = in.nextLine();
             System.out.println("Do you want to use a pretrained model? 0 for no, 1 for yes");
-            String pretrained = in.nextLine();
-            pretrained_bool = pretrained.equals("1");
+            pretrained = in.nextLine().equals("1");
         }
 
-        Indexer indexer = new Indexer("..//CACM//cacm.all", similarity, LMJfloat);
-        System.out.println("------------------------------------");
-        System.out.println("Starting 20:");
-        System.out.println("------------------------------------");
-        QueryParsing queryParsing20 = new QueryParsing("..//CACM//query.text", 20, similarity, LMJfloat, w2v_algo, pretrained_bool);
-        /*System.out.println("------------------------------------");
-        System.out.println("Starting 30:");
-        System.out.println("------------------------------------");
-        QueryParsing queryParsing30 = new QueryParsing("..//CACM//query.text", 30, similarity, LMJfloat, w2v_algo, pretrained_bool);
-        System.out.println("------------------------------------");
-        System.out.println("Starting 50:");
-        System.out.println("------------------------------------");
-        QueryParsing queryParsing50 = new QueryParsing("..//CACM//query.text", 50, similarity, LMJfloat, w2v_algo, pretrained_bool);*/
+        Word2Vec vec = null;
+        IndexReader indexReader = null;
+        try {indexReader = DirectoryReader.open(FSDirectory.open(Paths.get("index")));}
+        catch (IOException e) {e.printStackTrace();}
 
-        /*if (similarity.equalsIgnoreCase("lmj"))
-        {
-            Utilities.checkDuplicates("..//Information-Retrieval-with-Word-Embeddings//LM_Jelinek-Mercer(" + LMJfloat +")_our_results_20.txt");
-            Utilities.checkDuplicates("..//Information-Retrieval-with-Word-Embeddings//LM_Jelinek-Mercer(" + LMJfloat +")_our_results_30.txt");
-            Utilities.checkDuplicates("..//Information-Retrieval-with-Word-Embeddings//LM_Jelinek-Mercer(" + LMJfloat +")_our_results_50.txt");
+        ArrayList<Similarity> similaritiesList = new ArrayList<>();
+        if (similarity.contains("lmj"))
+            similaritiesList.add(new LMJelinekMercerSimilarity(LMJfloat));
+        if (similarity.contains("bm25"))
+            similaritiesList.add(new BM25Similarity());
+        if (similarity.contains("classic"))
+            similaritiesList.add(new ClassicSimilarity());
+        if (similarity.contains("w2v")) {
+            Phase4.FieldValuesSentenceIterator iterator = new FieldValuesSentenceIterator(indexReader, "contents");
+            if (!pretrained) {
+                vec = new Word2Vec.Builder()
+                        .layerSize(100)
+                        .windowSize(6)
+                        .tokenizerFactory(new DefaultTokenizerFactory())
+                        .iterate(iterator)
+                        .elementsLearningAlgorithm(w2v_algo.equalsIgnoreCase("cbow") ? new CBOW<>() : new SkipGram<>())
+                        .build();
+                vec.fit();
+            } else vec = WordVectorSerializer.readWord2VecModel("..//model//model.txt");
+            similaritiesList.add(new Phase4.WordEmbeddingsSimilarity(vec, "contents", WordEmbeddingsSimilarity.Smoothing.MEAN));
         }
-        else if (similarity.equalsIgnoreCase("bm25"))
-        {
-            Utilities.checkDuplicates("..//Information-Retrieval-with-Word-Embeddings//BM25(k1=1.2,b=0.75)_our_results_20.txt");
-            Utilities.checkDuplicates("..//Information-Retrieval-with-Word-Embeddings//BM25(k1=1.2,b=0.75)_our_results_30.txt");
-            Utilities.checkDuplicates("..//Information-Retrieval-with-Word-Embeddings//BM25(k1=1.2,b=0.75)_our_results_50.txt");
-        }
-        else
-        {
-            Utilities.checkDuplicates("..//Information-Retrieval-with-Word-Embeddings//ClassicSimilarity_our_results_20.txt");
-            Utilities.checkDuplicates("..//Information-Retrieval-with-Word-Embeddings//ClassicSimilarity_our_results_30.txt");
-            Utilities.checkDuplicates("..//Information-Retrieval-with-Word-Embeddings//ClassicSimilarity_our_results_50.txt");
-        }*/
+
+        Similarity[] similaritiesArray = new Similarity[2];
+        similaritiesArray = similaritiesList.toArray(similaritiesArray);
+        MultiSimilarity multiSimilarity = new MultiSimilarity(similaritiesArray);
+
+        Indexer indexer = new Indexer("..//CACM//cacm.all", multiSimilarity);
+        QueryParsing queryParsing20 = new QueryParsing("..//CACM//query.text", 20, multiSimilarity, vec, similarity.replace(' ', '_'));
+        QueryParsing queryParsing30 = new QueryParsing("..//CACM//query.text", 30, multiSimilarity, vec, similarity.replace(' ', '_'));
+        QueryParsing queryParsing50 = new QueryParsing("..//CACM//query.text", 50, multiSimilarity, vec, similarity.replace(' ', '_'));
+        Utilities.checkDuplicates("phase5_our_results_" + similarity.replace(' ', '_') + "_20.txt");
+        Utilities.checkDuplicates("phase5_our_results_" + similarity.replace(' ', '_') + "_30.txt");
+        Utilities.checkDuplicates("phase5_our_results_" + similarity.replace(' ', '_') + "_50.txt");
 
         //Utilities.fixRels("..//trec_eval//qrels.txt");
     }

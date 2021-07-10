@@ -1,7 +1,5 @@
 package Phase5;
 
-import Phase4.FieldValuesSentenceIterator;
-import Phase4.WordEmbeddingsSimilarity;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
@@ -54,7 +52,7 @@ public class main {
         if (similarity.contains("classic"))
             similaritiesList.add(new ClassicSimilarity());
         if (similarity.contains("w2v")) {
-            Phase4.FieldValuesSentenceIterator iterator = new FieldValuesSentenceIterator(indexReader, "contents");
+            FieldValuesSentenceIterator iterator = new FieldValuesSentenceIterator(indexReader, "contents");
             if (!pretrained) {
                 vec = new Word2Vec.Builder()
                         .layerSize(100)
@@ -65,7 +63,7 @@ public class main {
                         .build();
                 vec.fit();
             } else vec = WordVectorSerializer.readWord2VecModel("..//model//model.txt");
-            similaritiesList.add(new Phase4.WordEmbeddingsSimilarity(vec, "contents", WordEmbeddingsSimilarity.Smoothing.MEAN));
+            similaritiesList.add(new WordEmbeddingsSimilarity(vec, "contents", WordEmbeddingsSimilarity.Smoothing.MEAN));
         }
 
         Similarity[] similaritiesArray = new Similarity[2];

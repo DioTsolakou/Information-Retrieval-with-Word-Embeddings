@@ -2,7 +2,6 @@ package Phase5;
 
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.similarities.*;
 import org.apache.lucene.store.FSDirectory;
 import org.deeplearning4j.models.embeddings.learning.impl.elements.CBOW;
@@ -11,15 +10,19 @@ import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
 import org.deeplearning4j.models.word2vec.Word2Vec;
 import org.deeplearning4j.text.tokenization.tokenizerfactory.DefaultTokenizerFactory;
 
-import javax.swing.text.MutableAttributeSet;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.Scanner;
 
 public class main {
     public static void main(String[] args) {
+
+        Indexer indexer = new Indexer("..//CACM//cacm.all");
+        IndexReader indexReader = null;
+        try {indexReader = DirectoryReader.open(FSDirectory.open(Paths.get("index")));}
+        catch (IOException e) {e.printStackTrace();}
+
         Scanner in = new Scanner(System.in);
         System.out.println("Give similarity please");
         String similarity;
@@ -30,6 +33,7 @@ public class main {
         if (similarity.contains("lmj")) System.out.println("Give LMJ float");
         float LMJfloat = similarity.contains("lmj") ? in.nextFloat() : 0.f;
 
+        Word2Vec vec = null;
         String w2v_algo = null;
         boolean pretrained = false;
         if (similarity.contains("w2v")) {
@@ -38,11 +42,6 @@ public class main {
             System.out.println("Do you want to use a pretrained model? 0 for no, 1 for yes");
             pretrained = in.nextLine().equals("1");
         }
-
-        Word2Vec vec = null;
-        IndexReader indexReader = null;
-        try {indexReader = DirectoryReader.open(FSDirectory.open(Paths.get("index")));}
-        catch (IOException e) {e.printStackTrace();}
 
         ArrayList<Similarity> similaritiesList = new ArrayList<>();
         if (similarity.contains("lmj"))
@@ -70,7 +69,6 @@ public class main {
         similaritiesArray = similaritiesList.toArray(similaritiesArray);
         MultiSimilarity multiSimilarity = new MultiSimilarity(similaritiesArray);
 
-        Indexer indexer = new Indexer("..//CACM//cacm.all", multiSimilarity);
         QueryParsing queryParsing20 = new QueryParsing("..//CACM//query.text", 20, multiSimilarity, vec, similarity.replace(' ', '_'));
         QueryParsing queryParsing30 = new QueryParsing("..//CACM//query.text", 30, multiSimilarity, vec, similarity.replace(' ', '_'));
         QueryParsing queryParsing50 = new QueryParsing("..//CACM//query.text", 50, multiSimilarity, vec, similarity.replace(' ', '_'));

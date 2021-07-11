@@ -1,107 +1,125 @@
 package Phase5;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.core.KeywordAnalyzer;
+import org.apache.lucene.analysis.core.StopAnalyzer;
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.StoredField;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.TextField;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.search.similarities.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Indexer
 {
-    public Indexer(String filename, MultiSimilarity multiSimilarity)
+    public Indexer(String filename)
     {
         String indexLocation = "index";
         try
         {
-            System.out.println("Indexing to directory '" + indexLocation + "'...");
+            Analyzer defaultAnalyzer = new EnglishAnalyzer();
+            CharArraySet stopWords = new CharArraySet(Arrays.asList("a", "an", "the"), true);
 
-            Directory dir = FSDirectory.open(Paths.get(indexLocation));
-            Analyzer analyzer = new EnglishAnalyzer();
-            IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
-            iwc.setSimilarity(multiSimilarity);
+            Directory index = FSDirectory.open(Paths.get(indexLocation));
+            Map<String, Analyzer> perFieldAnalyzers = new HashMap<>();
 
-            iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
-            IndexWriter indexWriter = new IndexWriter(dir, iwc);
+            perFieldAnalyzers.put("id", new KeywordAnalyzer());
+            perFieldAnalyzers.put("title", new WhitespaceAnalyzer());
+            perFieldAnalyzers.put("w", new StopAnalyzer(stopWords));
+            perFieldAnalyzers.put("b", new WhitespaceAnalyzer());
+            perFieldAnalyzers.put("authors", new WhitespaceAnalyzer());
+            perFieldAnalyzers.put("keys", new WhitespaceAnalyzer());
+            perFieldAnalyzers.put("c", new KeywordAnalyzer());
+            perFieldAnalyzers.put("name", new StopAnalyzer(stopWords));
+            perFieldAnalyzers.put("contents", new StopAnalyzer(stopWords));
+
+            Analyzer analyzer = new PerFieldAnalyzerWrapper(defaultAnalyzer, perFieldAnalyzers);
+            IndexWriterConfig config = new IndexWriterConfig(analyzer);
+            config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
+            IndexWriter writer = new IndexWriter(index, config);
+
+            FieldType ft = new FieldType(TextField.TYPE_STORED);
+            ft.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
+            ft.setTokenized(true);
+            ft.setStored(true);
+            ft.setStoreTermVectors(true);
+            ft.setStoreTermVectorOffsets(true);
+            ft.setStoreTermVectorPositions(true);
+
             ArrayList<DocumentData> data = Preprocess.documentPreprocessor(filename);
 
-            //if (data == null) throw new NullPointerException();
             for (DocumentData d : data)
             {
-                indexDoc(indexWriter, d);
+                indexDoc(writer, d, ft);
             }
 
-            indexWriter.close();
+            writer.close();
         }
-        catch (IOException | NullPointerException e)
+        catch (IOException e)
         {
             e.printStackTrace();
         }
     }
 
-    private void indexDoc(IndexWriter indexWriter, DocumentData docData)
+    private void indexDoc(IndexWriter indexWriter, DocumentData docData, FieldType fieldType) throws IOException
     {
-        try {
-            // make a new, empty document
-            Document doc = new Document();
+        // make a new, empty document
+        Document doc = new Document();
 
-            // create the fields of the document and add them to the document
-            StoredField id = new StoredField("id", docData.getId());
-            doc.add(id);
+        // create the fields of the document and add them to the document
+        Field id = new Field("id", String.valueOf(docData.getId()), fieldType);
+        doc.add(id);
 
-            StoredField title = new StoredField("title", docData.getTitle());
-            doc.add(title);
+        Field title = new Field("title", docData.getTitle(), fieldType);
+        doc.add(title);
 
-            StoredField w = new StoredField("w", docData.getW());
-            doc.add(w);
+        Field w = new Field("w", docData.getW(), fieldType);
+        doc.add(w);
 
-            StoredField b = new StoredField("b", docData.getB());
-            doc.add(b);
+        Field b = new Field("b", docData.getB(), fieldType);
+        doc.add(b);
 
-            StoredField authors = new StoredField("authors", String.join("/", docData.getAuthors()));
-            doc.add(authors);
+        Field authors = new Field("authors", String.join("/", docData.getAuthors()), fieldType);
+        doc.add(authors);
 
-            StoredField keys = new StoredField("keys", String.join("/", docData.getKeys()));
-            doc.add(keys);
+        Field keys = new Field("keys", String.join("/", docData.getKeys()), fieldType);
+        doc.add(keys);
 
-            StoredField c = new StoredField("c", String.join("/", docData.getC()));
-            doc.add(c);
+        Field c = new Field("c", String.join("/", docData.getC()), fieldType);
+        doc.add(c);
 
-            StoredField name = new StoredField("name", docData.getName());
-            doc.add(name);
+        Field name = new Field("name", docData.getName(), fieldType);
+        doc.add(name);
 
-            ArrayList<String> cit = new ArrayList<>();
-            for (String[] s: docData.getCitation())
-                cit.add(String.join(" ", s));
+        ArrayList<String> cit = new ArrayList<>();
+        for (String[] s: docData.getCitation())
+            cit.add(String.join(" ", s));
 
-            StoredField citation = new StoredField("citation", String.join("/", cit));
-            doc.add(citation);
+        String fullSearchableText =
+                String.join(" ",
+                        String.valueOf(docData.getId()), docData.getTitle(), docData.getW(), docData.getB(), String.join("/",
+                                docData.getAuthors()), String.join("/", docData.getKeys()), String.join("/", docData.getC()),
+                        docData.getName(), String.join("/", cit));
 
-            String fullSearchableText =
-                    String.join(" ",
-                            String.valueOf(docData.getId()), docData.getTitle(), docData.getW(), docData.getB(), String.join("/",
-                                    docData.getAuthors()), String.join("/", docData.getKeys()), String.join("/", docData.getC()),
-                                        docData.getName(), String.join("/", cit));
+        Field contents = new Field("contents", fullSearchableText, fieldType);
+        doc.add(contents);
 
-            TextField contents = new TextField("contents", fullSearchableText, Field.Store.NO);
-            doc.add(contents);
-
-            if (indexWriter.getConfig().getOpenMode() == IndexWriterConfig.OpenMode.CREATE) {
-                // New index, so we just add the document (no old document can be there):
-                System.out.println("adding " + docData);
-                indexWriter.addDocument(doc);
-            }
-        } catch(Exception e){
-            e.printStackTrace();
+        if (indexWriter.getConfig().getOpenMode() == IndexWriterConfig.OpenMode.CREATE)
+        {
+            indexWriter.addDocument(doc);
         }
     }
 }

@@ -1,6 +1,8 @@
 package Phase5;
 
+import Phase4.WordEmbeddingsSimilarity;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
@@ -34,10 +36,11 @@ public class QueryParsing
         {
             IndexReader indexReader = DirectoryReader.open(FSDirectory.open(Paths.get(indexLocation)));
             IndexSearcher indexSearcher = new IndexSearcher(indexReader);
-
             indexSearcher.setSimilarity(similarity);
+
             ArrayList<QueryData> data = Preprocess.queryPreprocessor(filename);
             search(data, indexSearcher, field, topK, vec, resultsFilename);
+
             indexReader.close();
         }
         catch (IOException e)
@@ -50,11 +53,10 @@ public class QueryParsing
     {
         try
         {
-            Analyzer analyzer = new EnglishAnalyzer();
-            QueryParser queryParser = new QueryParser(field, analyzer);
+            QueryParser queryParser = new QueryParser(field, new WhitespaceAnalyzer());
             queryParser.setAllowLeadingWildcard(true);
 
-            File resultsFile = new File( "phase5_our_results_" + resultsFilename + "_" + topK +".txt");
+            File resultsFile = new File( "phase5_our_results_" + topK +".txt");
             if (resultsFile.exists()) {
                 resultsFile.delete();
                 resultsFile.createNewFile();
@@ -63,29 +65,36 @@ public class QueryParsing
             for (QueryData q : data)
             {
                 Query query = queryParser.parse(QueryParser.escape(q.getWords()));
-                if (vec != null) {
-                    ArrayList<String> words = new ArrayList<>(Arrays.asList(query.toString().split("\\s")));
-                    StringBuilder fixedQueryTerms = new StringBuilder();
-                    for (String word : words)
-                    {
-                        //if (word.length() == 0) continue;
-                        word = word.replace("contents:", "");
-                        if (!vec.hasWord(word)) words.remove(word);
-                        fixedQueryTerms.append(word).append(" ");
-                    }
-                    q.setWords(fixedQueryTerms.toString());
-                    query = queryParser.parse(QueryParser.escape(q.getWords()));
+                ArrayList<String> words = new ArrayList<>(Arrays.asList(query.toString().split("\\s")));
+                StringBuilder fixedQueryTerms = new StringBuilder();
+
+                for (String word : words)
+                {
+                    //if (word.length() == 0) continue;
+                    word = word.replace("contents:", "");
+                    if (!vec.hasWord(word)) words.remove(word);
+                    fixedQueryTerms.append(word).append(" ");
                 }
+
+                q.setWords(fixedQueryTerms.toString());
+                query = queryParser.parse(QueryParser.escape(q.getWords()));
 
                 TopDocs results = indexSearcher.search(query, topK);
                 ScoreDoc[] hits = results.scoreDocs;
 
+                /*for (ScoreDoc hit : hits)
+                {
+                    Document hitDoc = indexSearcher.doc(hit.doc);
+                    System.out.println("\t["+hit.score+"] \tID: " + hitDoc.get("id") + " \tTITLE: " + hitDoc.get("title") + " \tW: " + hitDoc.get("w") + " \tB: " + hitDoc.get("b") +
+                            " \tAUTHORS: " + hitDoc.get("authors") + " \tKEYS: " + hitDoc.get("keys") + " \tC: " + hitDoc.get("c") + " \tNAME: " + hitDoc.get("name"));
+                }*/
+
                 ArrayList<ScoreDoc> scoreDocs = new ArrayList<ScoreDoc>(Arrays.asList(hits));
-                if (vec != null) {
-                    for (ScoreDoc sd : scoreDocs) {
-                        if (Float.isNaN(sd.score)) sd.score = (float) 0;
-                    }
+                for (ScoreDoc sd : scoreDocs)
+                {
+                    if (Float.isNaN(sd.score)) sd.score = (float) 0;
                 }
+
                 scoreDocs.sort(new Comparator() {
                     public int compare(Object o1, Object o2) {
                         ScoreDoc sd1 = (ScoreDoc) o1;
@@ -93,18 +102,20 @@ public class QueryParsing
                         return -1 * Float.compare((sd1.score), (sd2.score));
                     }
                 });
-
                 BufferedWriter bw = new BufferedWriter(new FileWriter(resultsFile, true));
                 String queryId = String.valueOf(q.getId());
                 if (q.getId() < 10) queryId = "0" + queryId;
 
-                for (ScoreDoc sd: scoreDocs) {
+                for (ScoreDoc sd : scoreDocs) {
                     Document hitDoc = indexSearcher.doc(sd.doc);
                     StringBuilder docId = new StringBuilder(hitDoc.get("id"));
-                    while (docId.length() < 4) docId.insert(0, "0");
-                    bw.append(queryId + "\t0" + "\t" + docId.toString() + "\t0" + "\t" + sd.score + "\tstandard_run_id\n");
-                }
 
+                    while (docId.length() < 4)
+                    {
+                        docId.insert(0, "0");
+                    }
+                    bw.append(queryId + "\t0" + "\t" + docId + "\t0" + "\t" + sd.score + "\tstandard_run_id\n");
+                }
                 bw.close();
             }
         }
